@@ -33,10 +33,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _scanText() async {
-    if (_controller == null ||
-        _isDetecting ||
-        _startSelection == null ||
-        _endSelection == null) return;
+    if (_controller == null || _isDetecting) return;
     _isDetecting = true;
 
     try {
@@ -85,22 +82,20 @@ class _CameraScreenState extends State<CameraScreen> {
               _isCameraActive)
             GestureDetector(
               onTapDown: (details) {
+                // Início da seleção manual
                 setState(() {
                   _startSelection = details.localPosition;
-                  _endSelection = null; // Limpa a seleção anterior
-                });
-              },
-              onPanUpdate: (details) {
-                setState(() {
-                  _endSelection = details.localPosition;
                 });
               },
               onTapUp: (details) {
+                // Fim da seleção manual
                 setState(() {
                   _endSelection = details.localPosition;
                 });
               },
-              child: CameraPreview(_controller!),
+              child: Positioned.fill(
+                child: CameraPreview(_controller!),
+              ),
             ),
           if (_startSelection != null && _endSelection != null)
             Positioned(
@@ -114,18 +109,19 @@ class _CameraScreenState extends State<CameraScreen> {
                 ),
               ),
             ),
-          if (_scannedText != null)
-            Positioned(
-              top: 16,
-              left: 16,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  '$_scannedText',
-                  textAlign: TextAlign.left,
-                ),
-              ),
-            ),
+          Positioned(
+            top: 16,
+            left: 16,
+            child: _scannedText != null
+                ? Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      '$_scannedText',
+                      textAlign: TextAlign.left,
+                    ),
+                  )
+                : SizedBox(),
+          ),
           if (_controller != null &&
               _controller!.value.isInitialized &&
               _isCameraActive)
