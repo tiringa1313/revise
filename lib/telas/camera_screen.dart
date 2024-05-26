@@ -13,7 +13,9 @@ class _CameraScreenState extends State<CameraScreen> {
   List<CameraDescription>? cameras;
   bool _isDetecting = false;
   String? _scannedText;
-  bool _isCameraActive = true; // Variável para controlar a ativação da câmera
+  bool _isCameraActive = true;
+  Offset? _startSelection;
+  Offset? _endSelection;
 
   @override
   void initState() {
@@ -31,7 +33,10 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _scanText() async {
-    if (_controller == null || _isDetecting) return;
+    if (_controller == null ||
+        _isDetecting ||
+        _startSelection == null ||
+        _endSelection == null) return;
     _isDetecting = true;
 
     try {
@@ -43,8 +48,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
       setState(() {
         _scannedText = recognisedText.text;
-        _isCameraActive =
-            false; // Desativar a câmera após o escaneamento do texto
+        _isCameraActive = false;
       });
 
       textDetector.close();
@@ -53,6 +57,13 @@ class _CameraScreenState extends State<CameraScreen> {
     } finally {
       _isDetecting = false;
     }
+  }
+
+  void _handleSelectionChange(Offset start, Offset end) {
+    setState(() {
+      _startSelection = start;
+      _endSelection = end;
+    });
   }
 
   @override
@@ -72,22 +83,49 @@ class _CameraScreenState extends State<CameraScreen> {
           if (_controller != null &&
               _controller!.value.isInitialized &&
               _isCameraActive)
-            Positioned.fill(
+            GestureDetector(
+              onTapDown: (details) {
+                setState(() {
+                  _startSelection = details.localPosition;
+                  _endSelection = null; // Limpa a seleção anterior
+                });
+              },
+              onPanUpdate: (details) {
+                setState(() {
+                  _endSelection = details.localPosition;
+                });
+              },
+              onTapUp: (details) {
+                setState(() {
+                  _endSelection = details.localPosition;
+                });
+              },
               child: CameraPreview(_controller!),
             ),
-          Positioned(
-            top: 16,
-            left: 16,
-            child: _scannedText != null
-                ? Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      'Texto Escaneado: $_scannedText',
-                      textAlign: TextAlign.left,
-                    ),
-                  )
-                : SizedBox(),
-          ),
+          if (_startSelection != null && _endSelection != null)
+            Positioned(
+              left: _startSelection!.dx,
+              top: _startSelection!.dy,
+              width: _endSelection!.dx - _startSelection!.dx,
+              height: _endSelection!.dy - _startSelection!.dy,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.red, width: 2),
+                ),
+              ),
+            ),
+          if (_scannedText != null)
+            Positioned(
+              top: 16,
+              left: 16,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  '$_scannedText',
+                  textAlign: TextAlign.left,
+                ),
+              ),
+            ),
           if (_controller != null &&
               _controller!.value.isInitialized &&
               _isCameraActive)
